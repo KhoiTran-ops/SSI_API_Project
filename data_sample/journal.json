@@ -1,0 +1,146 @@
+{
+  "transactions": [
+    {
+      "date": "2025-01-06",
+      "kind": "deposit",
+      "symbol": null,
+      "quantity": 0,
+      "price": 0.0,
+      "fee": 0.0,
+      "tax": 0.0,
+      "amount": 800000000.0
+    },
+    {
+      "date": "2025-01-06",
+      "kind": "buy",
+      "symbol": "HPG",
+      "quantity": 15000,
+      "price": 26050.0,
+      "fee": 586125.0,
+      "tax": 0.0,
+      "amount": 0.0
+    },
+    {
+      "date": "2025-01-06",
+      "kind": "buy",
+      "symbol": "VCB",
+      "quantity": 4000,
+      "price": 92900.0,
+      "fee": 557400.0,
+      "tax": 0.0,
+      "amount": 0.0
+    },
+    {
+      "date": "2025-01-06",
+      "kind": "buy",
+      "symbol": "SSI",
+      "quantity": 10000,
+      "price": 24900.0,
+      "fee": 373500.0,
+      "tax": 0.0,
+      "amount": 0.0
+    },
+    {
+      "date": "2025-03-10",
+      "kind": "buy",
+      "symbol": "MWG",
+      "quantity": 6000,
+      "price": 62200.0,
+      "fee": 559800.0,
+      "tax": 0.0,
+      "amount": 0.0
+    },
+    {
+      "date": "2025-05-15",
+      "kind": "sell",
+      "symbol": "SSI",
+      "quantity": 5000,
+      "price": 23900.0,
+      "fee": 179250.0,
+      "tax": 119500.0,
+      "amount": 0.0
+    },
+    {
+      "date": "2025-07-01",
+      "kind": "buy",
+      "symbol": "PVS",
+      "quantity": 10000,
+      "price": 32100.0,
+      "fee": 481500.0,
+      "tax": 0.0,
+      "amount": 0.0
+    },
+    {
+      "date": "2025-09-15",
+      "kind": "sell",
+      "symbol": "HPG",
+      "quantity": 5000,
+      "price": 30350.0,
+      "fee": 227625.0,
+      "tax": 151750.0,
+      "amount": 0.0
+    },
+    {
+      "date": "2025-11-03",
+      "kind": "deposit",
+      "symbol": null,
+      "quantity": 0,
+      "price": 0.0,
+      "fee": 0.0,
+      "tax": 0.0,
+      "amount": 200000000.0
+    },
+    {
+      "date": "2025-11-03",
+      "kind": "buy",
+      "symbol": "ACV",
+      "quantity": 3000,
+      "price": 55200.0,
+      "fee": 248400.0,
+      "tax": 0.0,
+      "amount": 0.0
+    },
+    {
+      "date": "2025-11-03",
+      "kind": "buy",
+      "symbol": "SSI",
+      "quantity": 10000,
+      "price": 32500.0,
+      "fee": 487500.0,
+      "tax": 0.0,
+      "amount": 0.0
+    },
+    {
+      "date": "2026-02-10",
+      "kind": "sell",
+      "symbol": "VCB",
+      "quantity": 1000,
+      "price": 63100.0,
+      "fee": 94650.0,
+      "tax": 63100.0,
+      "amount": 0.0
+    },
+    {
+      "date": "2026-06-01",
+      "kind": "buy",
+      "symbol": "HPG",
+      "quantity": 10000,
+      "price": 24050.0,
+      "fee": 360750.0,
+      "tax": 0.0,
+      "amount": 0.0
+    },
+    {
+      "date": "2026-08-17",
+      "kind": "withdraw",
+      "symbol": null,
+      "quantity": 0,
+      "price": 0.0,
+      "fee": 0.0,
+      "tax": 0.0,
+      "amount": 50000000.0
+    }
+  ],
+  "simulated": true,
+  "label": "Nhật ký mô phỏng"
+}

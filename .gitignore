@@ -1,0 +1,10 @@
+/.env
+/.env.*
+!/.env.example
+/data/
+/data_sample/raw/
+/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.write.lock

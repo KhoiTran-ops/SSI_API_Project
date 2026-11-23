@@ -1,0 +1,43 @@
+{
+  "holdings": [
+    {
+      "symbol": "HPG",
+      "quantity": 20000,
+      "cost_price": 22100.0
+    },
+    {
+      "symbol": "VCB",
+      "quantity": 5000,
+      "cost_price": 56500.0
+    },
+    {
+      "symbol": "SSI",
+      "quantity": 15000,
+      "cost_price": 21200.0
+    },
+    {
+      "symbol": "MWG",
+      "quantity": 6000,
+      "cost_price": 76600.0
+    },
+    {
+      "symbol": "PVS",
+      "quantity": 10000,
+      "cost_price": 30100.0
+    },
+    {
+      "symbol": "ACV",
+      "quantity": 3000,
+      "cost_price": 40800.0
+    }
+  ],
+  "cash": 0.0,
+  "debt": 1000000000.0,
+  "call_ratio": 0.35,
+  "force_ratio": 0.25,
+  "simulated": true,
+  "label": "Danh mục mô phỏng",
+  "notes": {
+    "nguon": "Danh mục giả để minh họa; giá và thanh khoản lấy từ dữ liệu SSI thật trong data_sample/lake."
+  }
+}
