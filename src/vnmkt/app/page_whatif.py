@@ -56,31 +56,27 @@ def _prefill(params: dict | None) -> dict:
 def layout(params: dict | None = None) -> html.Div:
     pre = _prefill(params)
     return html.Div([
-        html.Div([html.Div([html.H1("Thử lệnh"),
-                            html.P("Ước tính tác động của một lệnh lên danh mục và tỷ lệ ký quỹ.")])], className="page-head"),
-        ui.panel(None, html.Div([
-            html.Div([html.Span("Loại lệnh"), ui.segmented("wi-side", [(BUY, "Mua"), (SELL, "Bán")], pre["side"])],
-                     className="field"),
-            html.Label([html.Span("Mã"), ui.symbol_dropdown("wi-symbol", data.symbols(), pre["symbol"])],
-                       className="field", style={"flex": "1 1 240px", "minWidth": "200px"}),
-            html.Div(ui.field("Khối lượng", ui.number_input("wi-qty", pre["qty"], min_=1, placeholder="Ví dụ 1.000")),
-                     style={"flex": "0 1 150px"}),
-            html.Div(ui.field("Giá (đồng)", ui.number_input("wi-price", pre["price"], min_=0)), style={"flex": "0 1 150px"}),
-            html.Div(ui.field("Phí giao dịch (%)", ui.number_input("wi-fee", 0, min_=0, max_=5)),
-                     style={"flex": "0 1 140px"}),
-        ], className="row", style={"alignItems": "flex-end", "gap": "14px"}),
-            html.Div(price_hint(pre["symbol"])[1], id="wi-hint", className="muted", style={"fontSize": "12px", "marginTop": "8px", "minHeight": "18px"}),
-            html.Div(id="wi-apply-msg", className="message", role="status")),
-        html.Div(id="wi-lede", className="panel lede"),
-        html.Div([html.Div([
-            ui.panel("Trước và sau lệnh", html.Div(id="wi-table"), hint="Theo giá đóng cửa phiên gần nhất trong kho"),
-            ui.panel("Tỷ trọng trước và sau lệnh", dcc.Graph(id="wi-weights", config=GRAPH_CONFIG)),
-        ], className="grid-wide"),
+        html.Div([html.H1("Thử lệnh")], className="page-head"),
         html.Div([
-            html.Div(id="wi-warnings", className="notes"),
-            html.Button("Áp dụng vào danh mục", id="wi-apply", className="btn", n_clicks=0, disabled=True),
-        ], className="row", style={"justifyContent": "space-between", "alignItems": "center"}),
-        ], id="wi-results", className="stack", style={"display": "none"}),
+            ui.panel("Lệnh", html.Div([
+                ui.segmented("wi-side", [(BUY, "Mua"), (SELL, "Bán")], pre["side"]),
+                html.Label([html.Span("Mã"), ui.symbol_dropdown("wi-symbol", data.symbols(), pre["symbol"])], className="field"),
+                html.Div(price_hint(pre["symbol"])[1], id="wi-hint", className="muted", style={"fontSize": "12px"}),
+                ui.field("Khối lượng", ui.number_input("wi-qty", pre["qty"], min_=1, placeholder="1.000")),
+                ui.field("Giá (đồng)", ui.number_input("wi-price", pre["price"], min_=0)),
+                ui.field("Phí giao dịch (%)", ui.number_input("wi-fee", 0, min_=0, max_=5)),
+                html.Button("Áp dụng vào danh mục", id="wi-apply", className="btn", n_clicks=0, disabled=True),
+                html.Div(id="wi-apply-msg", className="message", role="status"),
+            ], className="fields-col"), class_name="side"),
+            html.Div([
+                html.Div(id="wi-lede", className="panel lede"),
+                html.Div([
+                    html.Div(id="wi-warnings", className="notes"),
+                    ui.panel("Trước và sau lệnh", html.Div(id="wi-table")),
+                    ui.panel("Tỷ trọng trước và sau lệnh", dcc.Graph(id="wi-weights", config=GRAPH_CONFIG)),
+                ], id="wi-results", className="stack", style={"display": "none"}),
+            ], className="stack"),
+        ], className="split"),
         ui.method_note([
             "Khi mua, tiền trả = giá trị lệnh × (1 + phí). Dùng tiền mặt trước, phần thiếu cộng vào dư nợ. "
             "Khi bán, tiền nhận = giá trị lệnh × (1 − phí − thuế 0,1%). Dùng tiền bán để trả dư nợ trước.",

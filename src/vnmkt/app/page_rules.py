@@ -37,13 +37,13 @@ def layout(current_rules: dict) -> html.Div:
         fields.append(ui.field(rules.LABELS[key] + unit, ui.number_input(f"rl-{key}", _field_value(r, key)),
                                HELP[key]))
     return html.Div([
-        html.Div([html.Div([html.H1("Luật rủi ro"),
-                            html.P("Đặt giới hạn cho danh mục và lệnh mô phỏng, để trống ô tương ứng để tắt luật.")])], className="page-head"),
+        html.Div([html.H1("Luật rủi ro")], className="page-head"),
         html.Div([
             ui.panel("Giới hạn", html.Div(fields, className="fields"),
                      html.Div([html.Button("Lưu trên máy", id="rl-save", className="btn primary", n_clicks=0),
                                html.Span(id="rl-msg", className="message", role="status")],
-                              className="row", style={"marginTop": "14px", "alignItems": "center"})),
+                              className="row", style={"marginTop": "14px", "alignItems": "center"}),
+                     hint="Để trống là tắt"),
             ui.panel("Kiểm tra danh mục", html.Div(id="rl-status")),
         ], className="grid-even"),
     ], className="page")

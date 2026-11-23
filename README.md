@@ -7,7 +7,13 @@ Gói phần mềm ứng dụng cho tài chính 1 (UEL). Công cụ chỉ đọc 
 
 ## Chạy nhanh bằng dữ liệu mẫu (không cần khóa SSI)
 
+Cần Python 3.10–3.13. Tạo môi trường ảo riêng để thư viện đúng phiên bản trong `requirements.txt`:
+
 ```bash
+git clone https://github.com/KhoiTran-ops/SSI_API_Project.git
+cd SSI_API_Project
+python -m venv .venv
+# Windows: .venv\Scripts\activate      macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 python main.py run
 ```
@@ -19,19 +25,21 @@ trường thật của SSI (mọi cổ phiếu HOSE từ 2022 và vài mã HNX, 
 Kiểm thử:
 
 ```bash
-python -m pytest -q -p no:dash
+python -m pytest
 ```
 
 ## Các trang
 
 | Trang | Trả lời câu hỏi |
 |---|---|
-| Danh mục | Đang nắm gì, tỷ lệ ký quỹ bao nhiêu, còn chịu được giảm bao nhiêu trước khi bị gọi ký quỹ |
+| Tổng quan | Tỷ lệ ký quỹ, mức giảm còn chịu được trước khi bị gọi ký quỹ, luật đang vi phạm, mã đang giữ, phiên gần nhất, nếu giảm sàn 1 phiên |
 | Thị trường | Phiên đã chọn: độ rộng thị trường; danh mục biến động vì thị trường, ngành hay riêng mã; khối ngoại ở mã đang giữ |
 | Kịch bản giảm giá | Nếu giảm sàn 1/3/5 phiên, lặp lại đợt giảm 2022 hoặc giảm theo mức tự nhập: phiên nào bị gọi ký quỹ, phiên nào bị bán giải chấp, bán được bao nhiêu khi thiếu thanh khoản |
 | Thử lệnh | Một lệnh mua/bán làm tỷ lệ ký quỹ, sức chịu giảm, tỷ trọng, độ biến động thay đổi thế nào; có vi phạm luật tự đặt không |
 | Rủi ro | Mỗi mã góp bao nhiêu vào biến động (Euler), beta, phân rã theo nhóm ngành so với Chỉ số vốn hóa HOSE (Brinson) |
-| Hiệu suất | Từ nhật ký nạp/rút và lệnh đã khớp: TWR, IRR, so với VN-Index và với không giao dịch, phí thuế, PGR/PLR |
+| Hiệu suất | TWR, IRR, so với VN-Index và với không giao dịch, phí thuế, PGR/PLR |
+| Danh mục và tài khoản | Nhập mã, khối lượng, giá vốn, tiền mặt, dư nợ, ngưỡng ký quỹ |
+| Nhật ký giao dịch | Ghi nạp/rút tiền và lệnh đã khớp; cập nhật danh mục từ nhật ký |
 | Luật rủi ro | Giới hạn tự đặt: tỷ trọng một mã, một ngành, tỷ lệ ký quỹ tối thiểu, số phiên bán hết |
 
 Phương pháp, công thức, nguồn số liệu và giới hạn: [docs/thiet-ke.md](docs/thiet-ke.md).
@@ -101,7 +109,6 @@ src/vnmkt/
   context.py            bối cảnh thị trường: độ rộng, phân tách biến động trong phiên, khối ngoại
   app/                  giao diện Dash
 tests/                  kiểm thử tự động (fixtures: mẫu phản hồi WebSocket thật)
-report/                 bản thảo báo cáo, kịch bản video
 data_sample/            dữ liệu mẫu cho người chấm
 docs/thiet-ke.md        tài liệu thiết kế
 ```

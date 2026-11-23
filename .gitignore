@@ -8,3 +8,9 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .write.lock
+
+# Ngữ cảnh và tài liệu làm đồ án (chỉ giữ trên máy, không đưa lên repo)
+/CLAUDE.md
+/AGENTS.md
+/.claude/
+/report/

@@ -7,7 +7,7 @@ import pandas as pd
 import pytest
 
 from vnmkt import market, performance, rules, stress
-from vnmkt.app import page_performance, page_rules, page_stress, page_whatif, ui
+from vnmkt.app import page_journal, page_rules, page_stress, page_whatif, ui
 from vnmkt.app.theme import base_figure, fit_range, money, number, pannable, pct
 from vnmkt.portfolio import Holding, Portfolio, PortfolioError
 from vnmkt.whatif import BUY, Order, evaluate
@@ -120,9 +120,9 @@ def test_rules_status_view():
 def test_journal_row_ids_are_stable_and_unique():
     t = performance.Transaction(date(2026, 1, 5), performance.BUY, "AAA", 100, 10_000.0)
     j = performance.Journal((t, t, performance.Transaction(date(2026, 1, 6), performance.DEPOSIT, amount=1e6)))
-    ids = page_performance.row_ids(j)
+    ids = page_journal.row_ids(j)
     assert len(set(ids)) == 3 and ids[0].endswith("#1") and ids[1].endswith("#2")
-    assert page_performance.row_ids(performance.Journal(j.transactions[1:]))[0] == ids[0]  # xóa dòng sau không đổi id
+    assert page_journal.row_ids(performance.Journal(j.transactions[1:]))[0] == ids[0]  # xóa dòng sau không đổi id
 
 
 def test_live_prices_only_when_newer_than_warehouse(tmp_path, monkeypatch):

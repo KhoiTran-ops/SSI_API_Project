@@ -10,7 +10,9 @@ from vnmkt import store
 from vnmkt.performance import BUY, DEPOSIT, SELL, WITHDRAW, Journal, Transaction
 from vnmkt.portfolio import PortfolioError
 
-LAKE = Path(__file__).resolve().parents[1] / "data" / "lake"
+_ROOT = Path(__file__).resolve().parents[1]
+# Kho thật nếu máy có, không thì bộ mẫu đi kèm repo (cùng dữ liệu SSI, HOSE từ 2022) để kiểm thử chạy được sau khi clone.
+LAKE = next(p for p in (_ROOT / "data" / "lake", _ROOT / "data_sample" / "lake") if (p / "corporate_actions").exists())
 
 
 def frame(prices: dict[str, list[float]], start=date(2026, 1, 5), actions=None, index=None):
@@ -84,7 +86,6 @@ def test_round_trip_fills_sell_tax(tmp_path):
     assert pf.load(tmp_path / "j.json") == j
 
 
-@pytest.mark.skipif(not (LAKE / "corporate_actions").exists(), reason="cần kho thật có sự kiện quyền")
 def test_adjustment_factor_matches_ssi_price_changes():
     """F(d) tính từ sự kiện quyền phải bằng (thay đổi giá điều chỉnh) / (thay đổi giá gốc) mà SSI trả về."""
     with store.Warehouse(LAKE, read_only=True) as wh:

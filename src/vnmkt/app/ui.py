@@ -81,9 +81,9 @@ def symbol_dropdown(id_, symbols, value=None) -> dcc.Dropdown:
                                 "clear_selection": "Bỏ chọn", "no_options_found": "Không tìm thấy mã"})
 
 
-def segmented(id_, options: list[tuple[str, str]], value: str) -> dcc.RadioItems:
+def segmented(id_, options: list[tuple[str, str]], value: str, vertical: bool = False) -> dcc.RadioItems:
     return dcc.RadioItems(
-        id=id_, value=value, className="segmented", inline=True,
+        id=id_, value=value, className="segmented vertical" if vertical else "segmented", inline=not vertical,
         options=[{"label": html.Span(label, className="seg-option"), "value": key} for key, label in options])
 
 

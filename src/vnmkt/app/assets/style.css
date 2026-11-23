@@ -73,8 +73,10 @@ a { color: var(--accent); text-decoration: none; }
 .nav a:hover { background: var(--surface-2); color: var(--text); }
 .nav a.active { background: var(--accent-soft); color: var(--text); }
 .nav svg { width: 16px; height: 16px; flex: none; }
-.sidebar-foot { margin-top: auto; display: flex; flex-direction: column; gap: 6px; padding: 0 8px;
-  font-size: 12px; color: var(--muted); }
+.nav-group { font-size: 11px; color: var(--muted); padding: 14px 10px 4px; }
+.nav-group:first-child { padding-top: 0; }
+.topbar { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; padding: 10px 32px;
+  border-bottom: 1px solid var(--border); background: var(--surface); font-size: 12px; color: var(--text-2); }
 .main { min-width: 0; display: flex; flex-direction: column; }
 .page { width: 100%; max-width: 1180px; margin: 0 auto; padding: 28px 32px 24px; display: flex;
   flex-direction: column; gap: 20px; }
@@ -94,6 +96,18 @@ a { color: var(--accent); text-decoration: none; }
 .grid-wide { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; align-items: start; }
 .grid-narrow-wide { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); gap: 16px; align-items: start; }
 .stack { display: flex; flex-direction: column; gap: 16px; }
+.split { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 16px; align-items: start; }
+.split .side { position: sticky; top: 16px; }
+.split .tiles { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.fields-col { display: grid; gap: 12px; }
+.link-card { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.card-head a { font-size: 13px; font-weight: 500; }
+.kv-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.kv { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.kv-label { font-size: 12px; color: var(--text-2); }
+.kv-value { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; display: flex; align-items: center;
+  gap: 6px; flex-wrap: wrap; }
 .row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
 
 .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
@@ -137,6 +151,9 @@ a { color: var(--accent); text-decoration: none; }
   color: var(--text-2); font-weight: 500; font-size: 13px; user-select: none; }
 .segmented input:checked + .seg-option, .segmented label:has(input:checked) .seg-option {
   background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+.segmented.vertical { display: flex; flex-direction: column; width: 100%; }
+.segmented.vertical label { display: block; }
+.segmented.vertical .seg-option { display: block; }
 .segmented input:focus-visible + .seg-option { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 .field { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
@@ -225,7 +242,8 @@ details.disclosure > .disclosure-body { padding: 0 18px 18px; }
 /* ---------- responsive ---------- */
 @media (max-width: 980px) {
   .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .grid-2, .grid-even, .grid-wide, .grid-narrow-wide { grid-template-columns: minmax(0, 1fr); }
+  .grid-2, .grid-even, .grid-wide, .grid-narrow-wide, .split { grid-template-columns: minmax(0, 1fr); }
+  .split .side { position: static; }
 }
 @media (max-width: 760px) {
   .shell { grid-template-columns: 1fr; }
@@ -233,8 +251,8 @@ details.disclosure > .disclosure-body { padding: 0 18px 18px; }
     border-right: none; border-bottom: 1px solid var(--border); overflow-x: auto; }
   .sidebar { flex-wrap: wrap; row-gap: 8px; }
   .brand-sub, .brand-name { display: none; }
-  .sidebar-foot { width: 100%; margin-top: 0; flex-direction: row; flex-wrap: wrap; gap: 4px 12px; padding: 0;
-    font-size: 11px; }
+  .nav-group { display: none; }
+  .topbar { padding: 8px 16px; }
   .nav { flex-direction: row; }
   .nav a { white-space: nowrap; padding: 7px 10px; }
   .page { padding: 18px 16px; }

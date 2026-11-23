@@ -19,8 +19,7 @@ WINDOWS = [("63", "3 tháng"), ("125", "6 tháng"), ("250", "1 năm"), ("750", "
 
 def layout() -> html.Div:
     return html.Div([
-        html.Div([html.Div([html.H1("Rủi ro"),
-                            html.P("Xem đóng góp rủi ro và nguồn lợi suất của danh mục hiện tại.")]),
+        html.Div([html.H1("Rủi ro"),
                   ui.segmented("rk-window", WINDOWS, "250")], className="page-head"),
         html.Div(id="rk-lede", className="panel lede"),
         html.Div(id="rk-body", className="stack", children=[
@@ -90,10 +89,8 @@ def risk_table(rep: risk.RiskReport) -> html.Div:
              pct(r["own"] / rep.vol), pct(r["corr"] / rep.vol)] for s, r in tab.iterrows()]
     rows.append(["Danh mục", pct(1.0), pct(rep.vol), number(rep.beta, 2), pct(1.0),
                  pct(tab["own"].sum() / rep.vol), pct(tab["corr"].sum() / rep.vol)])
-    return html.Div([ui.table(["Mã", "Tỷ trọng", "Độ biến động năm", "Beta", "Đóng góp rủi ro", "Phần riêng", "Phần tương quan"],
-                              rows),
-                     html.P("Đóng góp rủi ro = phần do biến động riêng của mã + phần do tương quan với các mã khác.",
-                            className="muted", style={"fontSize": "12px", "marginTop": "8px"})], className="compare")
+    return html.Div(ui.table(["Mã", "Tỷ trọng", "Độ biến động năm", "Beta", "Đóng góp rủi ro", "Phần riêng", "Phần tương quan"],
+                             rows), className="compare")
 
 
 def brinson_view(att: risk.Attribution) -> html.Div:

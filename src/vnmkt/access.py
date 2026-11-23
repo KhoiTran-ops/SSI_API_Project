@@ -138,17 +138,19 @@ def check_stream(md: MarketData, seconds: int) -> None:
     try:
         print("WebSocket: kết nối OK")
         svc.on_data = on_data
-        record = lambda name: (lambda resp: acks.append(f"{name}: {resp.get('code', resp.get('status', 'ok')) if isinstance(resp, dict) else 'ok'}"))
-        svc.subscribe_symbol_trade(WS_SYMBOLS, on_response=record("trade"))
-        svc.subscribe_symbol_quote(WS_SYMBOLS, on_response=record("quote"))
-        svc.subscribe_symbol_room(WS_SYMBOLS, on_response=record("room"))
-        svc.subscribe_index_summary(["VNINDEX"], on_response=record("indexsummary"))
+        # SDK giữ một callback phản hồi chung cho mọi lần đăng ký, nên chỉ đếm trạng thái, không gắn tên topic.
+        def record(resp):
+            acks.append(str(resp.get("code", resp.get("status", "ok"))) if isinstance(resp, dict) else "ok")
+        svc.subscribe_symbol_trade(WS_SYMBOLS, on_response=record)
+        svc.subscribe_symbol_quote(WS_SYMBOLS, on_response=record)
+        svc.subscribe_symbol_room(WS_SYMBOLS, on_response=record)
+        svc.subscribe_index_summary(["VNINDEX"], on_response=record)
         time.sleep(2)
         try:
             print(f"  Đang đăng ký: {svc.list_subscription()}")
         except Exception as exc:
             print(f"  LIST_SUBSCRIPTION lỗi ({type(exc).__name__})")
-        print(f"  Phản hồi đăng ký: {acks or 'chưa nhận'}")
+        print(f"  Phản hồi đăng ký: {dict(Counter(acks)) if acks else 'chưa nhận'}")
         print(f"  Nghe {seconds} giây ...")
         time.sleep(seconds)
         print(f"  Số thông điệp theo topic: {dict(counts) or 'không có (ngoài giờ giao dịch thì bình thường)'}")

@@ -1,4 +1,4 @@
-"""Trang Danh mục: nhập cổ phiếu, tiền mặt, dư nợ và ngưỡng ký quỹ; xem tỷ lệ ký quỹ hiện tại."""
+"""Trang Danh mục và tài khoản: nhập cổ phiếu, tiền mặt, dư nợ, ngưỡng ký quỹ. Các hàm tóm tắt dùng chung với Tổng quan."""
 
 from __future__ import annotations
 
@@ -7,14 +7,14 @@ from dataclasses import replace
 
 import dash_ag_grid as dag
 import plotly.graph_objects as go
-from dash import Input, Output, State, ctx, dcc, html, no_update
+from dash import Input, Output, State, ctx, html, no_update
 
 from .. import stress
 from ..portfolio import Holding, PortfolioError, from_dict, to_dict, validate
 from . import data, ui
-from .theme import GRAPH_CONFIG, base_figure, money, pct, tokens
+from .theme import base_figure, money, pct, tokens
 
-PATH = "/"
+PATH = "/danh-muc"
 
 
 def _grid() -> dag.AgGrid:
@@ -53,12 +53,8 @@ def _grid() -> dag.AgGrid:
 
 
 def layout(p: dict) -> html.Div:
-    session = data.last_session()
     return html.Div([
-        html.Div([html.Div([html.H1("Danh mục"),
-                            html.P(f"Giá đóng cửa phiên {session:%d/%m/%Y}." if session else "Chưa có giá đóng cửa.")]),
-                  html.Div(id="pf-source")], className="page-head"),
-        html.Div(id="pf-tiles", className="tiles"),
+        html.Div([html.H1("Danh mục và tài khoản"), html.Div(id="pf-source")], className="page-head"),
         html.Div([
             ui.panel("Cổ phiếu đang nắm giữ",
                      html.Div([
@@ -88,16 +84,12 @@ def layout(p: dict) -> html.Div:
                              ui.field("Ngưỡng bán giải chấp (%)",
                                       ui.number_input("pf-force", round(p["force_ratio"] * 100, 2), min_=1, max_=99)),
                          ], className="fields"),
-                         html.P("Ngưỡng mặc định theo SSI: an toàn trên 35%, bán giải chấp dưới 25%. "
-                                "Có thể chỉnh theo hợp đồng ký quỹ.", className="muted",
-                                style={"fontSize": "12px", "marginTop": "10px"}),
                          html.Div([html.Button("Lưu trên máy", id="pf-save", className="btn primary", n_clicks=0),
                                    html.Button("Dùng danh mục mẫu", id="pf-reset", className="btn ghost", n_clicks=0)],
                                   className="row", style={"marginTop": "14px"}),
                          html.Div(id="pf-message", className="message", role="status", style={"marginTop": "8px"})),
-                ui.panel("Tỷ trọng", dcc.Graph(id="pf-weights", config=GRAPH_CONFIG)),
-            ], className="grid-even"),
-        ], className="stack"),
+            ]),
+        ], className="grid-wide"),
         ui.method_note([
             "Ứng dụng dùng giá đóng cửa phiên gần nhất trong kho, đã điều chỉnh theo sự kiện quyền. Nếu hôm nay mới hơn phiên gần "
             "nhất trong kho và có dữ liệu khớp lệnh ghi qua WebSocket (lệnh record), trang này dùng giá khớp gần nhất "
@@ -264,18 +256,18 @@ def register(app) -> None:
                 out["store"] = current
         return tuple(out.values())
 
-    @app.callback(Output("pf-grid", "rowData"), Output("pf-tiles", "children"), Output("pf-weights", "figure"),
-                  Output("pf-source", "children"), Output("pf-weights", "style"),
-                  Input("portfolio", "data"), Input("theme", "data"))
-    def render(current, theme):
+    @app.callback(Output("pf-grid", "rowData"), Output("pf-source", "children"), Input("portfolio", "data"))
+    def render(current):
         p = from_dict(current)
         s = summary(p)
-        source = [html.Span("Dữ liệu mô phỏng" if p.simulated else "Nhập thủ công", className="chip")]
-        if s["live_count"]:
-            source.append(html.Span(f"Giá trong phiên đến {s['live_at']:%H:%M} ({s['live_count']} mã)", className="chip",
-                                    title="Các trang Kịch bản giảm giá, Thử lệnh, Rủi ro và Luật rủi ro dùng giá đóng cửa phiên gần nhất trong kho."))
-        if s["missing"]:
-            source.append(html.Span(f"Không có giá: {', '.join(s['missing'])}", className="chip"))
-        fig = weights_figure(s, theme)
-        return (s["rows"], tiles(p, s), fig, html.Div(source, className="row"),
-                {"height": f"{fig.layout.height}px"})
+        return s["rows"], source_chips(s)
+
+
+def source_chips(s) -> html.Div:
+    chips = []
+    if s["live_count"]:
+        chips.append(html.Span(f"Giá trong phiên đến {s['live_at']:%H:%M} ({s['live_count']} mã)", className="chip",
+                               title="Các trang phân tích khác dùng giá đóng cửa phiên gần nhất trong kho."))
+    if s["missing"]:
+        chips.append(html.Span(f"Không có giá: {', '.join(s['missing'])}", className="chip"))
+    return html.Div(chips, className="row")

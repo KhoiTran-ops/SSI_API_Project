@@ -25,42 +25,41 @@ def layout(params: dict | None = None) -> html.Div:
     kind = (params or {}).get("kb")
     kind = kind if kind in dict(SCENARIOS) else "floor3"
     return html.Div([
-        html.Div([html.Div([html.H1("Kịch bản giảm giá"),
-                            html.P("Mô phỏng tác động của giá giảm và thanh khoản thấp lên tài khoản ký quỹ.")])],
-                 className="page-head"),
+        html.Div([html.H1("Kịch bản giảm giá")], className="page-head"),
         html.Div([
-            ui.segmented("st-scenario", SCENARIOS, kind),
             html.Div([
-                ui.field("Giảm mỗi phiên (%)", ui.number_input("st-drop", 5)),
-                ui.field("Số phiên", ui.number_input("st-sessions", 5, step=1, min_=1, max_=60)),
-            ], id="st-custom", className="row", style={"display": "none"}),
-        ], className="row", style={"alignItems": "center", "gap": "16px"}),
-        html.Div(ui.panel("Mức giảm theo mã", _drops_grid(),
-                          hint="Mức giảm của từng mã bị giới hạn ở giá sàn."),
-                 id="st-drops-wrap", style={"display": "none"}),
-        dcc.Store(id="st-overrides", data={}),
-        html.Div(id="st-lede", className="panel lede"),
-        html.Div(id="st-tiles", className="tiles"),
-        ui.panel("Tỷ lệ ký quỹ qua từng phiên", dcc.Graph(id="st-ratio", config=LINE_CONFIG, style={"height": "300px"})),
-        html.Div(ui.panel("Bán giải chấp theo phiên", dcc.Graph(id="st-sales", config=GRAPH_CONFIG, style={"height": "240px"}),
-                          hint="Thiếu thanh khoản có thể khiến lệnh bán không khớp ở giá sàn."), id="st-sales-wrap"),
-        html.Div([
-            html.Details([html.Summary("Chi tiết theo phiên"), html.Div(id="st-table", className="disclosure-body")],
-                         className="disclosure"),
-            html.Details([html.Summary("Cách tính và giới hạn"), html.Div([
-                html.Div([
+                ui.panel("Kịch bản", ui.segmented("st-scenario", SCENARIOS, kind, vertical=True),
+                         html.Div([
+                             ui.field("Giảm mỗi phiên (%)", ui.number_input("st-drop", 5)),
+                             ui.field("Số phiên", ui.number_input("st-sessions", 5, step=1, min_=1, max_=60)),
+                         ], id="st-custom", className="fields", style={"display": "none"})),
+                html.Div(ui.panel("Mức giảm theo mã", _drops_grid()), id="st-drops-wrap", style={"display": "none"}),
+                html.Div(html.Details([html.Summary("Giả định"), html.Div([
                     ui.field("Tỷ lệ tham gia khớp lệnh (%)",
-                             ui.number_input("st-part", a.participation * 100, min_=1, max_=100),
-                             "Tỷ lệ khối lượng khớp dành cho lệnh bán giải chấp"),
-                    ui.field("Số phiên ân hạn", ui.number_input("st-grace", a.call_grace, step=1, min_=1, max_=10),
-                             "Số phiên liên tiếp dưới ngưỡng gọi ký quỹ trước khi bán giải chấp"),
+                             ui.number_input("st-part", a.participation * 100, min_=1, max_=100)),
+                    ui.field("Số phiên ân hạn", ui.number_input("st-grace", a.call_grace, step=1, min_=1, max_=10)),
                     ui.field("Thuế bán (%)", ui.number_input("st-tax", a.tax_rate * 100, min_=0, max_=5)),
                     ui.field("Phí giao dịch (%)", ui.number_input("st-fee", a.fee_rate * 100, min_=0, max_=5)),
-                ], className="fields"),
-                html.Div(id="st-liquidity", style={"marginTop": "16px"}),
-                html.Div(id="st-notes", className="notes", style={"marginTop": "12px"}),
-            ], className="disclosure-body")], className="disclosure"),
-        ], className="panel"),
+                ], className="fields-col disclosure-body")], className="disclosure"), className="panel"),
+            ], className="side stack"),
+            html.Div([
+                dcc.Store(id="st-overrides", data={}),
+                html.Div(id="st-lede", className="panel lede"),
+                html.Div(id="st-tiles", className="tiles"),
+                ui.panel("Tỷ lệ ký quỹ qua từng phiên", dcc.Graph(id="st-ratio", config=LINE_CONFIG,
+                                                                  style={"height": "300px"})),
+                html.Div(ui.panel("Bán giải chấp theo phiên", dcc.Graph(id="st-sales", config=GRAPH_CONFIG,
+                                                                        style={"height": "240px"})), id="st-sales-wrap"),
+                html.Div([
+                    html.Details([html.Summary("Chi tiết theo phiên"), html.Div(id="st-table", className="disclosure-body")],
+                                 className="disclosure"),
+                    html.Details([html.Summary("Cách tính và giới hạn"), html.Div([
+                        html.Div(id="st-liquidity"),
+                        html.Div(id="st-notes", className="notes", style={"marginTop": "12px"}),
+                    ], className="disclosure-body")], className="disclosure"),
+                ], className="panel"),
+            ], className="stack"),
+        ], className="split"),
     ], className="page")
 
 
@@ -238,7 +237,7 @@ def liquidity_table() -> html.Div:
 def register(app) -> None:
     @app.callback(Output("st-custom", "style"), Output("st-drops-wrap", "style"), Input("st-scenario", "value"))
     def toggle_custom(kind):
-        return ({"display": "flex" if kind == "custom" else "none", "gap": "10px"},
+        return ({"display": "grid" if kind == "custom" else "none", "marginTop": "12px"},
                 {"display": "block" if kind == "custom" else "none"})
 
     @app.callback(Output("st-overrides", "data"), Input("st-drops", "cellValueChanged"), Input("st-drop", "value"),

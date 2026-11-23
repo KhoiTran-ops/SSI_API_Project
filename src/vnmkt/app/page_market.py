@@ -21,8 +21,7 @@ def layout() -> html.Div:
         days = context.sessions(wh, 30)
     options = [{"label": f"{d:%d/%m/%Y}", "value": d.isoformat()} for d in days]
     return html.Div([
-        html.Div([html.Div([html.H1("Thị trường"),
-                            html.P("Xem diễn biến thị trường và biến động danh mục trong phiên.")]),
+        html.Div([html.H1("Thị trường"),
                   html.Div(dcc.Dropdown(id="mk-day", options=options, value=options[0]["value"] if options else None,
                                         clearable=False, searchable=False, className="dropdown"),
                            style={"width": "170px"})], className="page-head"),
