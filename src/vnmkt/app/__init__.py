@@ -46,11 +46,21 @@ def _nav_items() -> list:
 RUN_STATUS = {"ok": ("good", "Đã cập nhật"), "partial": ("warning", "Thiếu dữ liệu cập nhật"), "failed": ("critical", "Lỗi cập nhật")}
 
 
-def status_view(s: dict, simulated: bool = False) -> list:
+def portfolio_source(current: dict | None) -> str:
+    current = current or {}
+    if current.get("simulated"):
+        return "Danh mục mô phỏng"
+    notes = current.get("notes") or {}
+    if notes.get("source") == "ssi":
+        return f"{current.get('label', 'SSI')} · đồng bộ {str(notes.get('synced_at', ''))[11:16]} {str(notes.get('synced_at', ''))[8:10]}/{str(notes.get('synced_at', ''))[5:7]}"
+    return "Danh mục nhập tay"
+
+
+def status_view(s: dict, source: str = "Danh mục nhập tay") -> list:
     """Thanh trên cùng: nguồn danh mục, ngày dữ liệu, lần cập nhật SSI, lần ghi thời gian thực."""
     if s.get("error"):
         return [html.Span("Không đọc được kho dữ liệu", className="pill critical")]
-    items = [html.Span("Danh mục mô phỏng" if simulated else "Danh mục nhập tay", className="chip"),
+    items = [html.Span(source, className="chip"),
              html.Span(f"Giá đóng cửa {s['session']:%d/%m/%Y}" if s["session"] else "Chưa có giá đóng cửa")]
     if s["run_status"]:
         tone, label = RUN_STATUS.get(s["run_status"], ("neutral", s["run_status"]))
@@ -85,7 +95,7 @@ def create_app() -> Dash:
 
     @app.callback(Output("data-status", "children"), Input("url", "pathname"), Input("portfolio", "data"))
     def refresh_status(_, current):
-        return status_view(data.status(), bool((current or {}).get("simulated")))
+        return status_view(data.status(), portfolio_source(current))
 
     @app.callback(Output("content", "children"), *[Output(f"nav-{i}", "className") for i in range(len(PAGES))],
                   Input("url", "pathname"), State("url", "search"), State("portfolio", "data"), State("rules", "data"))

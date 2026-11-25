@@ -67,7 +67,16 @@ Phương pháp, công thức, nguồn số liệu và giới hạn: [docs/thiet-
    python main.py record --minutes 30
    ```
 
-Danh mục, luật và dữ liệu tài khoản chỉ lưu trong `data/` trên máy (Git bỏ qua).
+5. Đồng bộ danh mục, ký quỹ và lệnh đã khớp từ tài khoản (chỉ đọc; cũng có nút "Đồng bộ từ SSI" trên trang Danh mục
+   và tài khoản, Nhật ký giao dịch). Lệnh in kết quả đối chiếu với số SSI; nạp/rút tiền API không có nên tự ghi
+   trong Nhật ký:
+
+   ```bash
+   python main.py sync-account --dry-run
+   python main.py sync-account
+   ```
+
+Danh mục, luật và dữ liệu tài khoản chỉ lưu trong `data/` trên máy (Git bỏ qua). Vẫn nhập tay được trên giao diện.
 
 ## Lệnh dòng lệnh
 
@@ -77,6 +86,7 @@ Danh mục, luật và dữ liệu tài khoản chỉ lưu trong `data/` trên m
 | `update [--full]` | Tải hoặc cập nhật dữ liệu thị trường |
 | `record [--minutes] [--symbols]` | Ghi dữ liệu thời gian thực |
 | `check` / `check-access` | Kiểm tra kết nối, quyền tài khoản, WebSocket |
+| `sync-account [--account] [--fee-rate] [--dry-run]` | Đọc danh mục, ký quỹ và lệnh đã khớp từ tài khoản SSI (chỉ đọc), đối chiếu với số SSI, ghi vào `data/` (cũng có nút "Đồng bộ từ SSI" trên giao diện) |
 | `tick-quality [--date]` | Kiểm tra chất lượng dữ liệu thời gian thực đã ghi (trùng, sai thứ tự, muộn, bất thường, mất tín hiệu) |
 | `quality` | Báo cáo chất lượng dữ liệu |
 | `sample` | Tạo lại bộ dữ liệu mẫu `data_sample/lake` từ kho thật |

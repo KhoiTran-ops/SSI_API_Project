@@ -17,7 +17,7 @@ from .config import VN_TZ
 from .ssi import MarketData, SsiError, rows_of
 
 ACCOUNT_READS = ("/api/v3/trading/position", "/api/v3/trading/accountBalance", "/api/v3/trading/ppmmrAccount")
-ORDER_WINDOWS_DAYS = (7, 30, 90, 365, 730, 1095)
+ORDER_WINDOWS_DAYS = (7, 30, 90, 180, 365)  # phản hồi thật 25/11/2026: khoảng > 365 ngày trả 0 lệnh, không báo lỗi
 WS_SYMBOLS = ["SSI", "HPG", "VCB"]
 
 

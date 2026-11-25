@@ -7,7 +7,7 @@ from dataclasses import replace
 
 import dash_ag_grid as dag
 import plotly.graph_objects as go
-from dash import Input, Output, State, ctx, html, no_update
+from dash import Input, Output, State, ctx, dcc, html, no_update
 
 from .. import stress
 from ..portfolio import Holding, PortfolioError, from_dict, to_dict, validate
@@ -84,9 +84,12 @@ def layout(p: dict) -> html.Div:
                              ui.field("Ngưỡng bán giải chấp (%)",
                                       ui.number_input("pf-force", round(p["force_ratio"] * 100, 2), min_=1, max_=99)),
                          ], className="fields"),
-                         html.Div([html.Button("Lưu trên máy", id="pf-save", className="btn primary", n_clicks=0),
+                         html.Div([html.Button("Đồng bộ từ SSI", id="pf-ssi", className="btn primary", n_clicks=0),
+                                   html.Button("Lưu trên máy", id="pf-save", className="btn", n_clicks=0),
                                    html.Button("Dùng danh mục mẫu", id="pf-reset", className="btn ghost", n_clicks=0)],
                                   className="row", style={"marginTop": "14px"}),
+                         dcc.Loading(html.Div(id="pf-ssi-msg", className="message", role="status"), type="dot",
+                                     delay_show=200),
                          html.Div(id="pf-message", className="message", role="status", style={"marginTop": "8px"})),
             ]),
         ], className="grid-wide"),
@@ -147,6 +150,10 @@ def tiles(p, s) -> list:
     if gap is not None:
         gap_text = (f"Cách ngưỡng gọi ký quỹ {money(gap)} ({pct(gap / s['lmv'])})"
                     if gap > 0 else "Đang dưới ngưỡng gọi ký quỹ")
+    notes = p.notes or {}
+    if notes.get("source") == "ssi" and notes.get("margin_ratio_ssi") is not None:
+        ssi = f"SSI báo {pct(float(notes['margin_ratio_ssi']))} lúc {str(notes.get('synced_at', ''))[11:16]}"
+        gap_text = f"{gap_text} · {ssi}" if gap_text else ssi
     return [
         ui.tile("Giá trị danh mục", money(s["lmv"]), f"{len(p.holdings)} mã"),
         ui.tile("Tài sản ròng", money(s["equity"])),
@@ -256,8 +263,25 @@ def register(app) -> None:
                 out["store"] = current
         return tuple(out.values())
 
-    @app.callback(Output("pf-grid", "rowData"), Output("pf-source", "children"), Input("portfolio", "data"))
-    def render(current):
+    @app.callback(Output("portfolio", "data", allow_duplicate=True), Output("journal", "data", allow_duplicate=True),
+                  Output("pf-ssi-msg", "children"), Output("pf-ssi-msg", "className"),
+                  Output("pf-cash", "value", allow_duplicate=True), Output("pf-debt", "value", allow_duplicate=True),
+                  Output("pf-call", "value", allow_duplicate=True), Output("pf-force", "value", allow_duplicate=True),
+                  Input("pf-ssi", "n_clicks"), State("portfolio", "data"), State("journal", "data"),
+                  prevent_initial_call=True)
+    def sync_ssi(clicks, current, journal):
+        if not clicks:
+            return (no_update,) * 8
+        try:
+            port, j, msg = data.sync_from_ssi(current, journal)
+        except Exception as exc:  # thiếu khóa, lỗi mạng hoặc SSI từ chối: báo lỗi, giữ nguyên dữ liệu đang dùng
+            return no_update, no_update, f"Không đồng bộ được: {exc}", "message error", *(no_update,) * 4
+        return (port, j, msg, "message ok", port["cash"] / 1e6, port["debt"] / 1e6,
+                round(port["call_ratio"] * 100, 2), round(port["force_ratio"] * 100, 2))
+
+    @app.callback(Output("pf-grid", "rowData"), Output("pf-source", "children"), Input("portfolio", "data"),
+                  Input("url", "pathname"))
+    def render(current, _path):
         p = from_dict(current)
         s = summary(p)
         return s["rows"], source_chips(s)

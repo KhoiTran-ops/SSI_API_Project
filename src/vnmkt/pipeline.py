@@ -162,10 +162,22 @@ class Pipeline:
         finally:  # vẫn ghi phần đã hỏi xong nếu lần chạy dừng giữa chừng
             # Chỉ ghi "đã hỏi tới" đến phiên VN-Index đã có trong kho: nếu SSI chưa công bố phiên mới (chạy ngay sau
             # 15:30), lần chạy sau phải hỏi lại, không được coi là "mã không có giao dịch" (lỗi gặp 23/11/2026).
+            # SSI công bố chỉ số trước giá cổ phiếu (gặp 25/11/2026: VN-Index đã có, giá cổ phiếu chưa): với bảng mã,
+            # một phiên chỉ tính là đã công bố khi số mã có giá phiên đó đạt ít nhất một nửa phiên liền trước.
             published = self.wh.scalar("SELECT max(date) FROM index_daily WHERE symbol = 'VNINDEX'")
+            if not is_index and published:
+                published = self.published_session(table) or published
             through = min(self.end, published) if published else self.end
             self.wh.upsert("checked", pd.DataFrame({"symbol": done, "through": through}))
         return total
+
+    def published_session(self, table: str = "daily") -> date | None:
+        """Phiên mới nhất mà giá cổ phiếu đã công bố đủ: số mã có giá ≥ một nửa phiên liền trước."""
+        counts = self.wh.rows(f"SELECT date, count(*) FROM {table} GROUP BY date ORDER BY date DESC LIMIT 10")
+        for (d, n), (_, prev) in zip(counts, counts[1:]):
+            if n >= 0.5 * prev:
+                return d
+        return counts[-1][0] if counts else None
 
     # ---- tổng hợp sàn (độ rộng chính thức, tự doanh, khối ngoại) ----
     def board(self, sessions: int = BOARD_HISTORY_SESSIONS) -> int:

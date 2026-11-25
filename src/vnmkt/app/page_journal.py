@@ -62,7 +62,8 @@ def layout() -> html.Div:
                      html.Button("Thêm", id="pfm-add", className="btn primary", n_clicks=0),
                  ], className="row", style={"alignItems": "flex-end", "gap": "12px", "marginBottom": "12px"}),
                  _grid(),
-                 html.Div([html.Div([html.Button("Xóa dòng đã chọn", id="pfm-delete", className="btn ghost", n_clicks=0),
+                 html.Div([html.Div([html.Button("Đồng bộ từ SSI", id="jr-ssi", className="btn primary", n_clicks=0),
+                                     html.Button("Xóa dòng đã chọn", id="pfm-delete", className="btn ghost", n_clicks=0),
                                      html.Button("Lưu trên máy", id="pfm-save", className="btn", n_clicks=0),
                                      html.Button("Dùng nhật ký mẫu", id="pfm-reset", className="btn ghost", n_clicks=0),
                                      html.Button("Cập nhật danh mục từ nhật ký", id="pfm-sync", className="btn ghost", n_clicks=0)],
@@ -70,7 +71,10 @@ def layout() -> html.Div:
                            html.Span(id="pfm-msg", className="message", role="status")],
                           className="row", style={"justifyContent": "space-between", "alignItems": "center",
                                                   "marginTop": "10px"})),
+        dcc.Loading(html.Div(id="jr-ssi-msg", className="message", role="status"), type="dot", delay_show=200),
         ui.method_note([
+            "Đồng bộ từ SSI đọc mọi lệnh đã khớp (kể cả khớp một phần) theo giá khớp bình quân, thay các lệnh mua/bán "
+            "trong nhật ký và giữ các dòng nạp/rút tự ghi. API không có lịch sử nạp/rút và phí từng lệnh.",
             "Ứng dụng tự tính thuế bán 0,1%.",
             "Không cần ghi cổ tức: lợi suất tính từ giá đã điều chỉnh, đã gồm cổ tức tiền mặt và cổ phiếu thưởng.",
             "Cập nhật danh mục từ nhật ký thay toàn bộ mã, tiền mặt và dư nợ của danh mục bằng số tính từ nhật ký.",
@@ -160,7 +164,22 @@ def register(app) -> None:
         except PortfolioError as exc:
             return no_update, str(exc), "message error", *keep
 
-    @app.callback(Output("pfm-grid", "rowData"), Output("jr-source", "children"), Input("journal", "data"))
-    def render(current):
+    @app.callback(Output("journal", "data", allow_duplicate=True), Output("portfolio", "data", allow_duplicate=True),
+                  Output("jr-ssi-msg", "children"), Output("jr-ssi-msg", "className"),
+                  Input("jr-ssi", "n_clicks"), State("portfolio", "data"), State("journal", "data"),
+                  prevent_initial_call=True)
+    def sync_ssi(clicks, port, current):
+        if not clicks:
+            return no_update, no_update, no_update, no_update
+        try:
+            p, j, msg = data.sync_from_ssi(port, current)
+        except Exception as exc:  # thiếu khóa, lỗi mạng hoặc SSI từ chối: báo lỗi, giữ nguyên dữ liệu đang dùng
+            return no_update, no_update, f"Không đồng bộ được: {exc}", "message error"
+        return j, p, msg, "message ok"
+
+    # Kho "journal" nằm ngoài trang: thêm đường dẫn làm tín hiệu để bảng được vẽ mỗi lần mở trang.
+    @app.callback(Output("pfm-grid", "rowData"), Output("jr-source", "children"), Input("journal", "data"),
+                  Input("url", "pathname"))
+    def render(current, _path):
         j = pf.from_dict(current)
-        return grid_rows(j), html.Span("Dữ liệu mô phỏng" if j.simulated else "Nhập thủ công", className="chip")
+        return grid_rows(j), html.Span("Dữ liệu mô phỏng" if j.simulated else (f"Lệnh từ {j.label}" if j.label.startswith("SSI") else "Nhập thủ công"), className="chip")

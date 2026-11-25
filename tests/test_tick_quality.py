@@ -46,3 +46,11 @@ def test_detects_each_problem(tmp_path):
 def test_no_data(tmp_path):
     r = tick_quality.check(tmp_path, DAY)
     assert r.counts == {"trade": 0, "quote": 0, "index": 0} and r.ok
+
+
+def test_late_count_ignores_local_clock_offset(tmp_path):
+    # Đồng hồ máy chậm 1,6 giây: mọi thông điệp "nhận trước giờ khớp"; chỉ thông điệp trễ thật mới bị tính muộn.
+    write(tmp_path, [trade("SSI", (10, 0, s), 19_850, 100, 1_000 + s, delay=-1.6) for s in range(0, 50, 5)]
+          + [trade("SSI", (10, 0, 55), 19_850, 100, 1_100, delay=8)])
+    r = tick_quality.check(tmp_path, DAY, {"SSI": ("HOSE", 20_000)})
+    assert r.late == 1 and abs(r.clock_offset + 1.6) < 0.01

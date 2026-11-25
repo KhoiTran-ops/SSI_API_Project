@@ -5,6 +5,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
+import duckdb
 import pandas as pd
 
 from .. import market, performance, rules, store
@@ -184,9 +185,52 @@ def live_prices(symbols: list[str]) -> dict:
     session = last_session()
     if not symbols or (session is not None and today <= session):
         return {}
-    trades = clean_trades(lake()[0], today)
+    try:
+        trades = clean_trades(lake()[0], today)
+    except (OSError, ValueError, duckdb.Error):  # tệp đang được gộp cuối phiên: lần làm mới sau sẽ đọc lại
+        return {}
     if trades.empty:
         return {}
     trades = trades[trades["symbol"].isin(symbols)]
-    last = trades.sort_values("time").groupby("symbol").tail(1)
+    # Nhiều lệnh cùng thời điểm (ATC 14:45:00): lấy dòng có tổng khối lượng lũy kế lớn nhất, tức lệnh khớp sau cùng.
+    last = trades.sort_values(["time", "total_volume"], kind="stable").groupby("symbol").tail(1)
     return {r.symbol: (float(r.price), r.time) for r in last.itertuples()}
+
+
+def sync_from_ssi(current_portfolio: dict, current_journal: dict, account_type: str = "Margin") -> tuple[dict, dict, str]:
+    """Đồng bộ danh mục, ký quỹ và lệnh đã khớp từ tài khoản SSI (chỉ đọc), lưu vào data/ và trả dữ liệu mới.
+    Nhật ký mẫu (mô phỏng) không được trộn vào dữ liệu thật; các dòng nạp/rút tự ghi được giữ lại."""
+    from datetime import datetime
+    from .. import account
+    from ..config import VN_TZ, credentials
+    from ..portfolio import from_dict, to_dict
+    from ..ssi import MarketData
+    busy = ssi_session_busy()
+    if busy:
+        raise RuntimeError(busy)
+    old = performance.from_dict(current_journal)
+    if old.simulated:
+        old = performance.Journal()
+    with MarketData(*credentials()) as md:
+        res = account.sync(md, account_type, from_dict(current_portfolio), old, lake()[0], datetime.now(VN_TZ).date())
+    for path in (user_portfolio_path(), journal_path()):
+        if path.exists():
+            path.with_suffix(".json.bak").write_bytes(path.read_bytes())
+    save(res.portfolio, user_portfolio_path())
+    performance.save(res.journal, journal_path())
+    return to_dict(res.portfolio), performance.to_dict(res.journal), res.summary()
+
+
+def ssi_session_busy() -> str | None:
+    """Lý do không nên đăng nhập SSI lúc này (mỗi khóa chỉ một phiên): đang ghi thời gian thực hoặc đang cập nhật kho."""
+    from datetime import datetime
+    s = status()
+    if s.get("tick_at") is not None and (datetime.now() - s["tick_at"]).total_seconds() < 90:
+        return "Đang ghi dữ liệu thời gian thực (lệnh record). Đồng bộ sau khi ghi xong vì mỗi khóa chỉ có một phiên đăng nhập."
+    root, sample = lake()
+    if not sample:
+        try:
+            store._WriteLock(root).release()
+        except store.WarehouseBusy:
+            return "Đang cập nhật dữ liệu thị trường (lệnh update). Đồng bộ sau khi cập nhật xong."
+    return None

@@ -3,7 +3,7 @@
 Không sửa dữ liệu gốc. `clean_trades` trả bản đã bỏ dòng trùng và dòng bất thường để dùng cho phân tích.
 - Trùng: cùng mã, cùng thời điểm khớp, cùng giá, khối lượng và tổng khối lượng (thông điệp gửi lại).
 - Sai thứ tự: tổng khối lượng khớp lũy kế của mã giảm so với thông điệp trước (theo thứ tự nhận).
-- Đến muộn: nhận sau thời điểm khớp quá LATE_SECONDS giây.
+- Đến muộn: nhận sau thời điểm khớp quá LATE_SECONDS giây, sau khi trừ độ lệch đồng hồ của máy (trung vị độ trễ).
 - Bất thường: giá không dương, ngoài biên độ trần–sàn tính từ giá tham chiếu, hoặc giá mua tốt nhất cao hơn giá bán tốt nhất.
 - Mất tín hiệu: khoảng trống giữa hai thông điệp liên tiếp (mọi mã) quá GAP_SECONDS trong giờ khớp lệnh liên tục.
 """
@@ -51,6 +51,7 @@ class TickReport:
     crossed_quotes: int
     gaps: list[tuple[datetime, datetime]] = field(default_factory=list)
     symbols: int = 0
+    clock_offset: float = 0.0   # trung vị (giờ nhận − giờ khớp), giây; âm là đồng hồ máy chậm hơn sàn
 
     @property
     def ok(self) -> bool:
@@ -68,13 +69,15 @@ def check(root: Path, day: date, refs: dict[str, tuple[str, float]] | None = Non
     index = read_topic(root, day, "index")
     counts = {"trade": len(trade), "quote": len(quote), "index": len(index)}
     dup = ooo = late = abnormal = crossed = 0
+    offset = 0.0
     if len(trade):
         key = ["symbol", "time", "price", "quantity", "total_volume"]
         dup = int(trade.duplicated(key).sum())
         t = trade.drop_duplicates(key)
         ooo = int(t.groupby("symbol")["total_volume"].apply(lambda s: (s.diff() < 0).sum()).sum())
         delay = (pd.to_datetime(t["received_at"]) - pd.to_datetime(t["time"])).dt.total_seconds()
-        late = int((delay > LATE_SECONDS).sum())
+        offset = float(delay.median()) if len(delay) else 0.0
+        late = int((delay - offset > LATE_SECONDS).sum())
         bad = t["price"].isna() | (t["price"] <= 0)
         if refs:
             def outside(row):
@@ -94,7 +97,7 @@ def check(root: Path, day: date, refs: dict[str, tuple[str, float]] | None = Non
         if (b - a).total_seconds() > GAP_SECONDS and _in_session(a) and _in_session(b):
             gaps.append((a.to_pydatetime(), b.to_pydatetime()))
     return TickReport(day, counts, dup, ooo, late, abnormal, crossed, gaps,
-                      symbols=int(trade["symbol"].nunique()) if len(trade) else 0)
+                      symbols=int(trade["symbol"].nunique()) if len(trade) else 0, clock_offset=offset)
 
 
 def clean_trades(root: Path, day: date) -> pd.DataFrame:

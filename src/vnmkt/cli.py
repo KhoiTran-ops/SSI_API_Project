@@ -187,6 +187,41 @@ def run(args: argparse.Namespace) -> int:
     return 0
 
 
+def sync_account(args: argparse.Namespace) -> int:
+    """Đọc danh mục, ký quỹ và lệnh đã khớp của tài khoản SSI (chỉ đọc), ghi vào data/portfolio.json và data/journal.json."""
+    from . import account, performance, portfolio
+    data_root = ROOT / "data"
+    port_path, journal_path = data_root / "portfolio.json", data_root / "journal.json"
+    base = portfolio.load(port_path if port_path.exists() else ROOT / "data_sample" / "portfolio.json")
+    with MarketData(*credentials()) as md:
+        res = account.sync(md, args.account, base, performance.load(journal_path), data_dir() / "lake",
+                           datetime.now(VN_TZ).date(), args.fee_rate / 100)
+    p = res.portfolio
+    print(f"Tiểu khoản {p.label}")
+    print(f"  danh mục: {len(p.holdings)} mã; tiền mặt {p.cash:,.0f} đ; dư nợ {p.debt:,.0f} đ; "
+          f"marginRatio SSI {p.notes['margin_ratio_ssi']:g}")
+    print("  ngưỡng ký quỹ: " + ("lấy từ callLMV/forceLMV của SSI" if p.notes["thresholds_from_ssi"] else
+                                 "giữ ngưỡng đang dùng (SSI không trả ngưỡng khi không có dư nợ)")
+          + f" — gọi {p.call_ratio:.0%}, bán giải chấp {p.force_ratio:.0%}")
+    days = [t.date for t in res.trades]
+    print(f"  lệnh: {res.orders} lệnh, {res.filled} lệnh có khớp -> {len(res.trades)} giao dịch"
+          + (f" từ {min(days):%d/%m/%Y} đến {max(days):%d/%m/%Y}" if days else ""))
+    for ch in res.checks:
+        print(f"  [{'đạt' if ch.passed else 'LỆCH'}] {ch.name}: {ch.detail}")
+    if args.dry_run:
+        print("Chạy thử: chưa ghi tệp.")
+        return 0
+    for path in (port_path, journal_path):
+        if path.exists():
+            path.with_suffix(".json.bak").write_bytes(path.read_bytes())
+    portfolio.save(p, port_path)
+    performance.save(res.journal, journal_path)
+    manual = sum(1 for t in res.journal.transactions if t.kind in (performance.DEPOSIT, performance.WITHDRAW))
+    print(f"Đã ghi {port_path.relative_to(ROOT)} và {journal_path.relative_to(ROOT)} (bản cũ: *.json.bak). "
+          f"Nhật ký giữ {manual} dòng nạp/rút tự ghi; API không có lịch sử nạp/rút.")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     # Khi đầu ra bị chuyển hướng (tệp log, pipe), Python trên Windows dùng cp1252 và lỗi khi in tiếng Việt.
     for stream in (sys.stdout, sys.stderr):
@@ -203,6 +238,11 @@ def main(argv: list[str] | None = None) -> int:
     acc = sub.add_parser("check-access", help="kiểm tra quyền tài khoản và WebSocket (chỉ đọc)")
     acc.add_argument("--seconds", type=int, default=20, help="số giây nghe WebSocket (0 để bỏ qua)")
     acc.set_defaults(func=check_access)
+    sync = sub.add_parser("sync-account", help="đọc danh mục, ký quỹ, lệnh đã khớp từ tài khoản SSI (chỉ đọc)")
+    sync.add_argument("--account", default="Margin", help="tiểu khoản: Margin (mặc định) hoặc Cash")
+    sync.add_argument("--fee-rate", type=float, default=0.0, help="phí giao dịch %% mỗi lệnh (API không trả phí)")
+    sync.add_argument("--dry-run", action="store_true", help="chỉ đọc và đối chiếu, không ghi tệp")
+    sync.set_defaults(func=sync_account)
     sub.add_parser("quality", help="báo cáo chất lượng dữ liệu").set_defaults(func=quality)
     rec = sub.add_parser("record", help="ghi dữ liệu thời gian thực (WebSocket) vào kho")
     rec.add_argument("--minutes", type=float, default=30, help="số phút ghi (Ctrl+C để dừng sớm)")
@@ -221,6 +261,6 @@ def main(argv: list[str] | None = None) -> int:
     logging.getLogger("httpx").setLevel(logging.WARNING)
     try:
         return args.func(args)
-    except (ConfigError, SsiError) as exc:
+    except (ConfigError, SsiError, LookupError) as exc:
         print(f"Lỗi: {exc}", file=sys.stderr)
         return 1

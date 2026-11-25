@@ -1,0 +1,49 @@
+{
+  "_note": "Khuôn phản hồi thật của SSI FastConnect V3 ngày 25/11/2026 (tên trường, kiểu chuỗi, mã trạng thái). Số tài khoản, khối lượng và số tiền là số giả.",
+  "account_info": [
+    {"accountNo": "000C000001", "accountType": "Cash"},
+    {"accountNo": "000C000006", "accountType": "Margin"},
+    {"accountNo": "000C000008", "accountType": "Derivative"}
+  ],
+  "position": {
+    "equity": [
+      {"accountNo": "000C000006", "symbol": "HPG", "quantity": "1000", "blockQuantity": "0", "dividendQuantity": "0",
+       "buyingQuantity": "0", "boughtQuantity": "0", "sellingQuantity": "0", "soldQuantity": "0", "t1SellQuantity": "0",
+       "t2SellQuantity": "0", "t1BuyQuantity": "0", "t2BuyQuantity": "500", "costPrice": "26000",
+       "mortgageQuantity": "0", "sellableQuantity": "1000", "restrictedQuantity": "0"},
+      {"accountNo": "000C000006", "symbol": "VND", "quantity": "0", "blockQuantity": "0", "dividendQuantity": "0",
+       "buyingQuantity": "0", "boughtQuantity": "0", "sellingQuantity": "0", "soldQuantity": "0", "t1SellQuantity": "0",
+       "t2SellQuantity": "0", "t1BuyQuantity": "0", "t2BuyQuantity": "0", "costPrice": "0",
+       "mortgageQuantity": "0", "sellableQuantity": "0", "restrictedQuantity": "0"}
+    ],
+    "receivedTime": "2026/11/25 15:40:00"
+  },
+  "ppmmr": {
+    "equity": {"accountNo": "000C000006", "accountBalance": "1000000", "withdrawable": "0", "liability": "20000000",
+               "liabilitySSI": "20000000", "equity": "20000000", "totalEquity": "20000000", "totalAssets": "40000000",
+               "collateralAsset": "40000000", "lmv": "39000000", "debt": "20000000", "totalDebt": "20000000",
+               "callLMV": "30769231", "forceLMV": "26666667", "marginRatio": "0.5", "marginRatioSSI": "0.5",
+               "action": "Normal", "fees": "0", "purchasingPower": "0"},
+    "receivedTime": "2026/11/25 15:40:00"
+  },
+  "orders": [
+    {"clientRequestId": "r1", "orderId": "1", "symbol": "HPG", "side": "B", "orderType": "LO", "quantity": "1000",
+     "price": "26000", "filledQty": "1000", "cancelQty": "0", "avgPrice": "26000", "inputTime": "2026/03/02 09:10:00",
+     "modifiedTime": "2026/03/02 09:11:00", "orderStatus": "FF", "message": null},
+    {"clientRequestId": "r2", "orderId": "2", "symbol": "HPG", "side": "B", "orderType": "LO", "quantity": "800",
+     "price": "26050", "filledQty": "500", "cancelQty": "300", "avgPrice": "26040", "inputTime": "2026/11/21 14:14:00",
+     "modifiedTime": "2026/11/21 14:47:00", "orderStatus": "FFPC", "message": null},
+    {"clientRequestId": "r3", "orderId": "3", "symbol": "VND", "side": "B", "orderType": "LO", "quantity": "30",
+     "price": "21550", "filledQty": "30", "cancelQty": "0", "avgPrice": "21550", "inputTime": "2025/07/30 10:39:00",
+     "modifiedTime": "2025/07/30 11:11:00", "orderStatus": "FF", "message": null},
+    {"clientRequestId": "r4", "orderId": "4", "symbol": "VND", "side": "S", "orderType": "LO", "quantity": "30",
+     "price": "23250", "filledQty": "30", "cancelQty": "0", "avgPrice": "23250", "inputTime": "2025/08/05 09:48:00",
+     "modifiedTime": "2025/08/05 09:49:00", "orderStatus": "FF", "message": null},
+    {"clientRequestId": "r5", "orderId": "5", "symbol": "DBC", "side": "B", "orderType": "LO", "quantity": "100",
+     "price": "33600", "filledQty": "0", "cancelQty": "100", "avgPrice": "0", "inputTime": "2025/08/05 14:37:00",
+     "modifiedTime": "2025/08/05 14:47:00", "orderStatus": "EX", "message": null},
+    {"clientRequestId": "r6", "orderId": "6", "symbol": "GMD", "side": "B", "orderType": "LO", "quantity": "100",
+     "price": "65500", "filledQty": "0", "cancelQty": "100", "avgPrice": "0", "inputTime": "2025/11/04 11:34:00",
+     "modifiedTime": "2025/11/04 11:46:00", "orderStatus": "CL", "message": null}
+  ]
+}

@@ -229,6 +229,9 @@ def evaluate(j: Journal, m: MarketFrame) -> PerformanceReport:
     factors = {s: adjustment_factors(m.actions, s, sorted({d for d, ts in by_day.items() for t in ts if t.symbol == s}))
                for s in symbols}
 
+    # Không có dòng nạp/rút (ví dụ nhật ký đọc từ orderBook của SSI, API không có lịch sử tiền): coi tiền mua là nạp
+    # vào và tiền bán là rút ra, lợi suất khi đó là của riêng phần cổ phiếu.
+    implicit = not any(t.kind in (DEPOSIT, WITHDRAW) for t in j.transactions)
     units = {s: 0.0 for s in symbols}
     cost = {s: 0.0 for s in symbols}             # giá vốn (đồng) của số đơn vị đang giữ
     cash, costs, traded = 0.0, 0.0, 0.0
@@ -239,15 +242,18 @@ def evaluate(j: Journal, m: MarketFrame) -> PerformanceReport:
     for d in days:
         px = m.prices.loc[d]
         flow = 0.0
+        inflow = outflow = 0.0
         sold_today = set()
         for t in by_day.get(d, []):
             if t.kind == DEPOSIT:
                 cash += t.amount
                 flow += t.amount
+                inflow += t.amount
                 flows.append((d, t.amount))
             elif t.kind == WITHDRAW:
                 cash -= t.amount
                 flow -= t.amount
+                outflow += t.amount
                 flows.append((d, -t.amount))
             else:
                 if pd.isna(px.get(t.symbol)):
@@ -258,25 +264,38 @@ def evaluate(j: Journal, m: MarketFrame) -> PerformanceReport:
                     cost[t.symbol] += t.value + t.fee
                     cash -= t.value + t.fee
                     costs += t.fee
+                    if implicit:
+                        cash += t.value + t.fee
+                        flow += t.value + t.fee
+                        inflow += t.value + t.fee
+                        flows.append((d, t.value + t.fee))
                 else:
                     if u > units[t.symbol] * (1 + 1e-9):
                         raise PortfolioError(f"Khối lượng bán {t.symbol} ngày {t.date:%d/%m/%Y} vượt số cổ phiếu nắm giữ.")
-                    avg = cost[t.symbol] / units[t.symbol]
+                    # Còn dưới một cổ phiếu sau lệnh này (phần lẻ do hệ số điều chỉnh gộp cả cổ tức tiền mặt):
+                    # coi như bán hết, lệnh này gánh toàn bộ giá vốn còn lại.
+                    closing = (units[t.symbol] - u) * factors[t.symbol][d] < 1 - 1e-6
+                    sold_cost = cost[t.symbol] if closing else cost[t.symbol] / units[t.symbol] * u
                     proceeds = t.value - t.fee - t.tax
-                    gain = proceeds - avg * u
+                    gain = proceeds - sold_cost
                     realized.append({"date": d, "symbol": t.symbol, "quantity": t.quantity, "price": t.price,
-                                     "cost": avg * u, "proceeds": proceeds, "gain": gain})
+                                     "cost": sold_cost, "proceeds": proceeds, "gain": gain})
                     if gain > 0:
                         rg += 1
                     elif gain < 0:
                         rl += 1
                     sold_today.add(t.symbol)
-                    cost[t.symbol] -= avg * u
+                    cost[t.symbol] -= sold_cost
                     units[t.symbol] -= u
-                    if units[t.symbol] < 1e-9:
+                    if closing:
                         units[t.symbol], cost[t.symbol] = 0.0, 0.0
                     cash += proceeds
                     costs += t.fee + t.tax
+                    if implicit:
+                        cash -= proceeds
+                        flow -= proceeds
+                        outflow += proceeds
+                        flows.append((d, -proceeds))
                 traded += t.value
         if sold_today:  # lãi/lỗ trên giấy của các mã đang giữ mà không bán trong ngày
             for s in symbols:
@@ -290,13 +309,14 @@ def evaluate(j: Journal, m: MarketFrame) -> PerformanceReport:
         value = cash + sum(units[s] * float(px[s]) for s in symbols if units[s] > 0 and not pd.isna(px[s]))
         if hold_units is None and by_day.get(d):
             hold_units, hold_cash = dict(units), cash      # danh mục sau ngày giao dịch đầu tiên
-        elif hold_units is not None:
+        elif hold_units is not None and not implicit:   # dòng tiền suy ra từ lệnh không thuộc kịch bản giữ nguyên
             hold_cash += flow
         hold_value = None if hold_units is None else hold_cash + sum(
             hold_units[s] * float(px[s]) for s in symbols if hold_units[s] > 0 and not pd.isna(px[s]))
-        base = (prev_value or 0.0) + flow
-        ret = value / base - 1 if prev_value is not None and base > 0 else 0.0
-        rows.append({"date": d, "value": value, "flow": flow, "ret": ret, "hold_value": hold_value})
+        # Tiền vào tính từ đầu phiên, tiền ra tính cuối phiên (bán xong mới rút).
+        base = (prev_value or 0.0) + inflow
+        ret = (value + outflow) / base - 1 if prev_value is not None and base > 0 else 0.0
+        rows.append({"date": d, "value": value, "flow": 0.0 if implicit else flow, "ret": ret, "hold_value": hold_value})
         prev_value = value
 
     daily = pd.DataFrame(rows).set_index("date")
@@ -310,8 +330,9 @@ def evaluate(j: Journal, m: MarketFrame) -> PerformanceReport:
     daily["hold_index"] = (1 + hold_ret).cumprod() * 100
     end = daily.index[-1]
     avg_value = float(daily["value"].clip(lower=0).mean()) or math.nan
-    notes = []
-    if (daily["value"] <= 0).any():
+    notes = ["Nhật ký không có nạp/rút tiền: coi tiền mua là nạp vào, tiền bán là rút ra; "
+             "lợi suất là của phần cổ phiếu"] if implicit else []
+    if (daily["value"] <= 0).any() and not implicit:
         notes.append("Có ngày tài sản ròng không dương: TWR các ngày đó không có ý nghĩa")
     held_left = {s: u for s, u in units.items() if u > 0}
     return PerformanceReport(

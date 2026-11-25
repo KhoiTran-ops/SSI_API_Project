@@ -262,3 +262,16 @@ def test_unpublished_session_is_fetched_on_next_run(wh):
     pipeline.Pipeline(md, wh, end=END).run()
     assert wh.scalar("SELECT max(date) FROM daily WHERE symbol = 'AAA'") == END
     assert wh.scalar("SELECT max(date) FROM index_daily WHERE symbol = 'VNINDEX'") == END
+
+
+def test_index_published_before_stocks_is_not_marked_checked(wh):
+    """SSI công bố VN-Index phiên END trước giá cổ phiếu (gặp 25/11/2026): không được đánh dấu mã đã hỏi tới END."""
+    md = FakeMD()
+    full_aaa, full_bbb = list(md.history["AAA"]), list(md.history["BBB"])
+    md.history["AAA"], md.history["BBB"] = full_aaa[:2], full_bbb[:2]
+    pipeline.Pipeline(md, wh, end=END).run()
+    assert wh.scalar("SELECT max(date) FROM index_daily WHERE symbol = 'VNINDEX'") == END
+    assert wh.scalar("SELECT max(through) FROM checked WHERE symbol IN ('AAA', 'BBB', 'CCC')") == date(2026, 11, 12)
+    md.history["AAA"], md.history["BBB"] = full_aaa, full_bbb
+    pipeline.Pipeline(md, wh, end=END).run()
+    assert wh.scalar("SELECT max(date) FROM daily WHERE symbol = 'AAA'") == END

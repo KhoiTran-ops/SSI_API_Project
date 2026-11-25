@@ -133,3 +133,26 @@ def test_same_day_buy_then_sell_in_any_order_and_weekend_trade_uses_session_fact
     j2 = Journal((Transaction(d[0], DEPOSIT, amount=1_000_000), Transaction(d[0], BUY, "AAA", 100, 10_000)))
     r2 = pf.evaluate(j2, m2)
     assert math.isclose(r2.daily["value"].iloc[0], 1_000_000)  # 100 cổ × 10.000, không bị nhân đôi
+
+
+def test_trades_only_journal_measures_stock_sleeve():
+    # Nhật ký đọc từ orderBook không có nạp/rút: tiền mua coi là nạp vào, tiền bán coi là rút ra.
+    m, d = frame({"AAA": [10_000, 11_000, 11_000, 12_100], "BBB": [20_000, 20_000, 18_000, 18_000]})
+    j = Journal((Transaction(d[0], BUY, "AAA", 100, 10_000), Transaction(d[1], SELL, "AAA", 100, 11_000, tax=0),
+                 Transaction(d[2], BUY, "BBB", 50, 18_000), Transaction(d[3], SELL, "BBB", 50, 18_000, tax=0)))
+    r = pf.evaluate(j, m)
+    assert r.final_cash == 0 and any("không có nạp/rút" in n for n in r.notes)
+    assert r.twr == pytest.approx(0.10)                     # +10% ở AAA, BBB mua và bán cùng giá: hòa vốn
+    assert r.realized["gain"].sum() == pytest.approx(100 * 1_000)
+
+
+def test_closing_sale_carries_fractional_residual_cost():
+    # Cổ tức tiền mặt và cổ phiếu cùng ngày: hệ số điều chỉnh gộp cả hai nên số đơn vị còn lẻ sau khi bán hết.
+    acts = [{"symbol": "AAA", "exright_date": date(2026, 1, 6), "ratio": 0.877,
+             "title": "AAA - Phát hành cổ phiếu trả cổ tức tỷ lệ 14%"}]
+    m, d = frame({"AAA": [10_000, 8_770, 8_600]}, actions=acts)
+    j = Journal((Transaction(d[0], DEPOSIT, amount=2_000_000), Transaction(d[0], BUY, "AAA", 100, 10_000),
+                 Transaction(d[2], SELL, "AAA", 114, 8_600, tax=0)))
+    r = pf.evaluate(j, m)
+    assert not any("Đang giữ" in n for n in r.notes)
+    assert r.realized["cost"].sum() == pytest.approx(1_000_000)   # toàn bộ giá vốn được tính khi bán hết

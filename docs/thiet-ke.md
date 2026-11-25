@@ -16,7 +16,7 @@ Nhà đầu tư cá nhân dùng margin thường chỉ thấy một con số t�
 |---|---|---|
 | Nhập tay | Mặc định | Mã, khối lượng, giá vốn, tiền mặt, dư nợ, ngưỡng ký quỹ. Lưu trong `data/` (Git bỏ qua). |
 | Mô phỏng | Dữ liệu mẫu cho người chấm | Danh mục giả, giá thật từ kho. Ghi rõ "mô phỏng" trên mọi màn hình. |
-| Tài khoản SSI | Khi tài khoản có danh mục | Chỉ đọc. Ngày 22/11/2026 cả 3 tiểu khoản đều trống, nên đường này chưa có số liệu để kiểm chứng. |
+| Tài khoản SSI | Nguồn chính (`sync-account`, nút "Đồng bộ từ SSI") | Chỉ đọc. Danh mục, ký quỹ và lệnh đã khớp; nạp/rút và phí từng lệnh API không có nên người dùng tự ghi. Đã chạy thật 25/11/2026 (mục 3.2). |
 
 Cả ba nguồn quy về cùng một cấu trúc `Portfolio` (mục 4), nên các phần tính toán không phụ thuộc nguồn.
 
@@ -56,7 +56,7 @@ Lưu bằng **Parquet** (nén zstd) trong `data/lake/`, truy vấn bằng DuckDB
 
 Cần bổ sung `recordDate` và `issueDate` vào `corporate_actions` (có trong phản hồi gốc, bảng chưa lưu).
 
-### 3.2 API tài khoản (đã thấy phản hồi thật 22/11/2026)
+### 3.2 API tài khoản (phản hồi thật 22/11 và 25/11/2026)
 
 - SDK đã bóc lớp `data`. Cổ phiếu: `{"equity": {...}, "receivedTime"}`; phái sinh: `{"derivative": {...}}`.
 - **Chất lượng dữ liệu thời gian thực** (`tick_quality.py`, lệnh `tick-quality`): trùng (cùng mã, thời điểm, giá, khối lượng, tổng khối lượng), sai thứ tự (tổng khối lượng lũy kế giảm), đến muộn (> 5 giây), bất thường (giá không dương, ngoài trần–sàn từ tham chiếu phiên trước, giá mua > giá bán), mất tín hiệu (> 60 giây trong giờ khớp lệnh liên tục). Không sửa dữ liệu gốc; `clean_trades` trả bản đã lọc. Lần ghi 23/11/2026: không phát hiện lỗi.
@@ -64,10 +64,12 @@ Cần bổ sung `recordDate` và `issueDate` vào `corporate_actions` (có trong
 - **Phiên chưa công bố đủ**: `update` chỉ lấy đến phiên đã có VN-Index; mã bị tải lại toàn bộ cũng không vượt quá phiên đó, và bảng `checked` ("đã hỏi SSI tới ngày nào") chỉ ghi đến phiên VN-Index đã có, nên lần chạy sau sẽ hỏi lại phiên mới. Lỗi gặp ngày 23/11/2026: chạy lúc 15:31 khi SSI chưa công bố, `checked` ghi nhầm "đã hỏi tới 23/11" cho mọi mã nên lần chạy sau bỏ qua; đã sửa và có kiểm thử.
 - **Giá trong phiên**: trang Danh mục định giá bằng giá khớp gần nhất hôm nay trong `ticks` (đã bỏ trùng, giá không dương) khi hôm nay mới hơn phiên cuối trong kho; có nhãn "Giá trong phiên đến hh:mm". Các trang phân tích dùng giá đóng cửa ngày.
 - **Giá tham chiếu**: UPCoM là giá bình quân phiên trước, HOSE/HNX là giá đóng cửa (đối chiếu `masterdata` 13/11/2026: UPCoM khớp giá bình quân 99,7%). `market.quotes` trả cột `ref`; kịch bản, thử lệnh và thống kê phiên sàn dùng cột này.
-- **WebSocket** (phản hồi thật 23/11/2026, trong giờ giao dịch): token không OTP nhận được dữ liệu; đăng ký trade, quote, room, indexsummary đều được xác nhận. SDK trả `TradeMessage`, `QuoteMessage` với **giá tính bằng đồng** (kể cả quote, khác tài liệu ghi nghìn đồng), `IndexSummaryMessage` giữ dict gốc với giá trị là chuỗi; trong 25 giây không có thông điệp room. `recorder.normalize` theo đúng các dạng này; mẫu thật lưu ở `tests/fixtures/ws_messages.json`. `python main.py record` ghi vào `ticks/date=/topic=/` (trade, quote, index, room).
+- **WebSocket** (phản hồi thật 23/11/2026, trong giờ giao dịch): token không OTP nhận được dữ liệu; đăng ký trade, quote, room, indexsummary đều được xác nhận. SDK trả `TradeMessage`, `QuoteMessage` với **giá tính bằng đồng** (kể cả quote, khác tài liệu ghi nghìn đồng), `IndexSummaryMessage` giữ dict gốc với giá trị là chuỗi; topic room trả `ForeignRoomMessage` (room còn lại, lũy kế mua/bán của khối ngoại; ghi thật 25/11/2026: 1.904 thông điệp cho 14 mã). `recorder.normalize` theo đúng các dạng này; mẫu thật lưu ở `tests/fixtures/ws_messages.json`. `python main.py record` ghi vào `ticks/date=/topic=/` (trade, quote, index, room).
 - `ppmmrAccount` trả 74 trường, mọi giá trị đều là chuỗi. Có các ngưỡng `callLMV`, `forceLMV`, `callMargin`, `callForcesell`. Đây là **giá trị thị trường** tại đó bị gọi ký quỹ hoặc bán giải chấp, không phải tỷ lệ. Khi tài khoản không có dư nợ, các trường này bằng 0. Khi D > 0 có thể suy tỷ lệ R_call = 1 − D/callLMV (chưa kiểm chứng).
-- `orderBook`: tham số `from`, `to` dạng `YYYY/MM/DD`, `pageIndex`, `pageSize`. Phản hồi có `accountNo`, `orderList`, `totalRecord`. Theo ghi chú của SDK, không suy số trang từ `totalRecord`; đọc tới khi gặp trang rỗng.
-- Tên trường khi có danh mục (`callLMV`, `forceLMV`, `costPrice`...) **chưa kiểm chứng**. Bộ chuyển đổi sẽ báo lỗi rõ ràng khi gặp khóa lạ, không tự gán 0.
+- `orderBook`: tham số `from`, `to` dạng `YYYY/MM/DD`, `pageIndex`, `pageSize`. Phản hồi có `accountNo`, `orderList`, `totalRecord`. **Khoảng ngày dài hơn 365 ngày trả 0 lệnh mà không báo lỗi** (thử 366, 400, 500 ngày và từ năm 2000), nên `account.fetch_orders` đọc từng cửa sổ 180 ngày từ 2015, theo trang 100 lệnh, bỏ trùng theo `orderId`. Mỗi lệnh: `side` B/S, `orderStatus` FF (khớp hết), FFPC (khớp một phần rồi hủy), EX (hết hiệu lực), CL (hủy), `filledQty`, `avgPrice` (đồng), `inputTime`, `modifiedTime`. Có lệnh lô lẻ.
+- **Quy đổi** (`account.py`): `position` → `Holding` (khối lượng = `quantity` + `t1BuyQuantity` + `t2BuyQuantity`, giá vốn `costPrice`); `ppmmrAccount` → tiền mặt = `accountBalance`, dư nợ = `liability` (gồm phí còn nợ), ngưỡng gọi/bán giải chấp = 1 − D/`callLMV`, 1 − D/`forceLMV` khi có dư nợ (không thì giữ ngưỡng đang dùng); lệnh có `filledQty` > 0 → giao dịch mua/bán theo `avgPrice`, ngày khớp, thuế bán 0,1%. Nhật ký giữ các dòng nạp/rút tự ghi.
+- **Đối chiếu khi đồng bộ** (`account.cross_check`): tài sản ròng = tổng tài sản − nợ; tiền mặt + LMV = tổng tài sản; số cổ phiếu theo `position` = số dựng lại từ lệnh khớp và sự kiện quyền. Chạy thật 25/11/2026 (tiểu khoản Margin): 52 lệnh, 40 khớp từ 29/07/2025 đến 10/11/2026, cả ba phép đối chiếu khớp (28 cổ phiếu CII bán mà không có lệnh mua là cổ tức bằng cổ phiếu). Khuôn phản hồi đã làm sạch: `tests/fixtures/ssi_account.json`.
+- **Chưa kiểm chứng** (tài khoản thử không còn mã và không vay): khối lượng `position` khi đang giữ mã (đối chiếu thứ ba sẽ báo lệch nếu công thức sai), cách SSI tính `marginRatio` (tài khoản không nợ trả 1), R_call = 1 − D/callLMV.
 
 ## 4. Mô hình danh mục
 
@@ -127,7 +129,7 @@ So sánh trước và sau: giá trị danh mục, dư nợ ròng, tài sản rò
 ### 5.4 Hiệu suất
 
 - **Đã làm** (`performance.py`, trang Hiệu suất) từ nhật ký giao dịch nhập tay (`data/journal.json`; mẫu mô phỏng `data_sample/journal.json`): mỗi lệnh khớp q cổ giá thật ngày d quy thành q/F(d) đơn vị điều chỉnh, F(d) = tích hệ số `ratio` các sự kiện sau d (một hệ số mỗi ngày: SSI ghi cùng hệ số cho mọi sự kiện cùng ngày). Đối chiếu F với (thay đổi giá điều chỉnh)/(thay đổi giá gốc) của SSI: khớp 100% HPG, VCB, SSI, PVS, FPT, 99,9% MWG (không dùng được cho UPCoM vì tham chiếu là giá bình quân). Nhờ vậy lợi suất là lợi suất tổng, nhật ký không ghi cổ tức. Quyền mua được tính như đã thực hiện theo giá lý thuyết. Số cổ phiếu thật đang giữ chỉ cộng cổ phiếu thưởng/cổ tức bằng cổ phiếu (đọc "tỷ lệ x%" trong tiêu đề sự kiện).
-- TWR theo ngày (dòng tiền đầu ngày) so với VN-Index; MWR (IRR năm, giải bằng chia đôi) theo dòng tiền nạp và rút.
+- TWR theo ngày (tiền vào tính đầu phiên, tiền ra tính cuối phiên) so với VN-Index; MWR (IRR năm, giải bằng chia đôi) theo dòng tiền nạp và rút. Nhật ký đọc từ SSI không có nạp/rút: coi tiền mua là nạp vào, tiền bán là rút ra, lợi suất khi đó là của phần cổ phiếu (có ghi chú trên trang). Bán hết mà còn phần lẻ dưới một cổ phiếu (hệ số điều chỉnh gộp cả cổ tức tiền mặt) thì lệnh bán đó gánh toàn bộ giá vốn còn lại; tổng lãi/lỗ đã thực hiện bằng đúng tiền bán ròng trừ tiền mua (kiểm thử và đối chiếu trên 40 lệnh thật).
 - Brinson, Hood & Beebower (1986, *Financial Analysts Journal* 42(4)) theo nhóm ngành ICB cấp 2 (2 chữ số đầu mã ICB của SSI, 19 nhóm): phân bổ (wpₛ − wbₛ)Rbₛ + chọn mã wbₛ(Rpₛ − Rbₛ) + tương tác (wpₛ − wbₛ)(Rpₛ − Rbₛ) = Rp − Rb (`risk.attribution`, đã làm). Hiện giả định giữ nguyên khối lượng hiện tại suốt giai đoạn (chưa có lịch sử lệnh). Mốc là **Chỉ số vốn hóa HOSE** do ứng dụng tự tính: mọi cổ phiếu HOSE, trọng số = số cổ phiếu niêm yết hiện tại × giá đầu kỳ (API SSI V3 không có danh sách thành phần hay tỷ trọng của VN-Index). Chỉ số này chỉ dùng làm mốc cho phân rã theo ngành, không phải VN-Index và không đem so với VN-Index.
 - PGR/PLR (Odean 1998, *Journal of Finance* 53(5)) từ lịch sử lệnh. Phần này chỉ chạy khi có lệnh, nhập tay hoặc từ `orderBook`.
 - Chi phí: phí giao dịch và thuế bán 0,1%. Mức phí là tham số người dùng nhập.
@@ -158,12 +160,15 @@ Thiết kế: nền trung tính, một màu nhấn; bốn màu trạng thái (an
 | TWR | Danh mục chỉ gồm chỉ số thì TWR = lợi suất chỉ số |
 | Sự kiện quyền | Giá điều chỉnh liên tục qua ngày giao dịch không hưởng quyền |
 | Chỉ đọc | Mọi đường dẫn ngoài `READ_ONLY_PATHS` bị chặn |
-| Đối chiếu SSI | Khi có tài khoản thật: R tự tính so với `marginRatio`; tài sản ròng so với SSI |
+| Đối chiếu SSI | Mỗi lần đồng bộ: tài sản ròng, tổng tài sản, số cổ phiếu dựng lại từ lệnh so với `position`; giao diện hiện `marginRatio` SSI cạnh R tự tính |
+| Đọc lệnh | Giả lập orderBook trả 0 khi khoảng > 365 ngày: đọc đủ lệnh, đủ trang, bỏ trùng |
+| Thời gian thực | Trùng, sai thứ tự, đến muộn (trừ độ lệch đồng hồ máy), bất thường, mất tín hiệu; tệp tick ghi nguyên tử |
 
 ## 8. Giới hạn
 
 - Không có hạn đăng ký và nộp tiền quyền mua (API không cung cấp).
-- Không xem được khớp lệnh của các phiên đã qua; chỉ có dữ liệu từ khi bắt đầu ghi luồng.
+- Không xem được khớp lệnh của các phiên đã qua; chỉ có dữ liệu từ khi bắt đầu ghi luồng. Lệnh khớp lúc mở lại phiên chiều và kết quả ATC (14:45) đến chậm 10–26 giây theo cách sàn công bố.
+- API không có lịch sử nạp/rút tiền và phí từng lệnh. Mỗi khóa chỉ một phiên đăng nhập: giao diện không cho đồng bộ khi đang ghi thời gian thực hoặc đang cập nhật kho.
 - Không có các mã đã hủy niêm yết (sai lệch sống sót).
 - Ngưỡng ký quỹ mặc định là dải hiển thị chung của SSI. Mỗi mã có thể có tỷ lệ riêng, nên cần nhập theo hợp đồng của người dùng.
 - Mô hình thanh khoản dựa trên lịch sử. Thị trường có thể kém thanh khoản hơn mức đã từng xảy ra.

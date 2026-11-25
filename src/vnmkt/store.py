@@ -426,7 +426,10 @@ class TickWriter:
         # Số thứ tự tăng dần ở đầu tên tệp: gộp theo tên là đúng thứ tự ghi (kể cả khi ghi qua nửa đêm).
         seqs = [int(f.name[:6]) for f in folder.glob("*.parquet") if f.name[:6].isdigit()]
         name = f"{max(seqs, default=-1) + 1:06d}-{now().strftime('%H%M%S')}.parquet"
-        pd.DataFrame(rows).to_parquet(folder / name, index=False, compression="zstd")
+        # Ghi ra tệp tạm rồi đổi tên: giao diện đọc song song không bao giờ gặp tệp ghi dở.
+        tmp = folder / f"{name}.tmp"
+        pd.DataFrame(rows).to_parquet(tmp, index=False, compression="zstd")
+        os.replace(tmp, folder / name)
 
     def flush(self) -> None:
         for day, topic in list(self._buffer):

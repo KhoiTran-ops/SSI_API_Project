@@ -38,3 +38,12 @@ def test_index_summary_strings_become_numbers():
 
 def test_unknown_messages_are_skipped():
     assert recorder.normalize({"method": "subscribe", "status": "ok"}) is None
+
+
+def test_foreign_room_message_is_recorded():
+    from ssi_sdk.models.streaming import ForeignRoomMessage
+    msg = ForeignRoomMessage.from_dict({"t": "2026/11/25 13:10:01", "s": "HPG", "tr": "100", "cr": "40",
+                                        "bq": "1000", "bv": "20450000", "sq": "500", "sv": "10225000"})
+    topic, rec = recorder.normalize(msg)
+    assert topic == "room" and rec["symbol"] == "HPG" and rec["current_room"] == 40
+    assert rec["buy_val"] == 20_450_000 and rec["sell_qty"] == 500 and rec["time"].hour == 13

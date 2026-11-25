@@ -273,6 +273,8 @@ def register(app) -> None:
     def run(current, kind, drop, sessions, part, grace, tax, fee, theme, edited):
         p = from_dict(current)
         empty = base_figure(theme, 120)
+        empty.update_xaxes(visible=False)
+        empty.update_yaxes(visible=False)
         if not p.holdings:
             msg = "Thêm cổ phiếu ở trang Danh mục để chạy kịch bản."
             return msg, [], empty, empty, {"display": "none"}, None, liquidity_table(), None

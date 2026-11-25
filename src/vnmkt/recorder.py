@@ -60,9 +60,11 @@ def normalize(msg) -> tuple[str, dict] | None:
                          "declines": num(d.get("dec")), "unchanged": num(d.get("nc")), "ceiling": num(d.get("ce")),
                          "floor": num(d.get("fl")), "match_val": num(d.get("tmv")), "match_vol": num(d.get("tmq")),
                          "total_val": num(d.get("tv")), "total_vol": num(d.get("tq"))}
-    if kind == "RoomMessage":  # chưa thấy phản hồi thật trong giờ giao dịch: giữ mọi trường đơn giản để xem sau
-        rec = {k: v for k, v in vars(msg).items() if isinstance(v, (str, int, float, type(None)))}
-        return "room", rec
+    if kind == "ForeignRoomMessage":  # khối ngoại: room còn lại và lũy kế mua/bán trong phiên
+        return "room", {"symbol": msg.symbol, "time": _time(msg.trading_time), "total_room": num(msg.total_room),
+                        "current_room": num(msg.current_room), "buy_qty": num(msg.buy_quantity),
+                        "buy_val": num(msg.buy_value), "sell_qty": num(msg.sell_quantity),
+                        "sell_val": num(msg.sell_value)}
     return None
 
 

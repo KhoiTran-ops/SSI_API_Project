@@ -128,7 +128,7 @@ def register(app) -> None:
                   Input("journal", "data"), Input("theme", "data"))
     def render(current, theme):
         j = pf.from_dict(current)
-        source = html.Span("Dữ liệu mô phỏng" if j.simulated else "Nhập thủ công", className="chip")
+        source = html.Span("Dữ liệu mô phỏng" if j.simulated else (f"Lệnh từ {j.label}" if j.label.startswith("SSI") else "Nhập thủ công"), className="chip")
         hide = {"display": "none"}
         if not j.transactions:
             return ["Nhật ký trống. ", dcc.Link("Ghi giao dịch", href="/nhat-ky")], hide, [], {}, None, None, source
